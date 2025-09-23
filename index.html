@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -401,7 +400,6 @@
         <section id="qr-page" class="qr-page">
             <div class="offer-header">
                 <h2>Get Today's Discount!</h2>
-                <p id="offer-date">Offer valid until: </p>
             </div>
             
             <h3>Scan this QR code to see all discounts</h3>
@@ -422,7 +420,6 @@
         <section id="customer-page" class="customer-page">
             <div class="customer-header">
                 <h2>Today's Special Discounts!</h2>
-                <p id="customer-offer-date">Offer valid until: </p>
             </div>
             
             <div id="customer-products" class="customer-products">
@@ -668,7 +665,7 @@
                 return;
             }
             
-            // Save products to localStorage (for same device)
+            // Save products to localStorage (for same device) only for the correct shop code
             localStorage.setItem(`shopProducts_${shopCode}`, JSON.stringify(productsData));
             
             // Also encode product data in URL for cross-device compatibility
@@ -676,7 +673,7 @@
             const base64Data = toUrlSafeBase64(productDataString);
             
             // Set the offer date in the QR page
-            document.getElementById('offer-date').textContent = `Offer valid until: ${offerDate}`;
+            // No offer date in header as per requirement
             
             // Display products on QR page
             displayProducts();
@@ -737,10 +734,7 @@
             const customerProducts = document.getElementById('customer-products');
             customerProducts.innerHTML = '';
             
-            // Set the offer date from the first product
-            if (productsData.length > 0) {
-                document.getElementById('customer-offer-date').textContent = `Offer valid until: ${productsData[0].offerTill}`;
-            }
+            // No offer date in header as per requirement
             
             productsData.forEach((product, index) => {
                 if (product.name) { // Only display products with a name
@@ -777,4 +771,3 @@
     </script>
 </body>
 </html>
-```
