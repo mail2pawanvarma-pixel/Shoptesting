@@ -375,6 +375,11 @@
                 <label for="shop-code">Shop Code:</label>
                 <input type="text" id="shop-code" placeholder="Enter unique shop code (e.g., 1111a)" required>
             </div>
+
+            <div class="form-group">
+                <label for="shop-password">Shop Password:</label>
+                <input type="password" id="shop-password" placeholder="Enter shop password" required>
+            </div>
             
             <div class="instructions">
                 <h4>How to add product images:</h4>
@@ -432,49 +437,42 @@
         </section>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+
     <!-- QR Code Generation Library -->
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     
     <script>
+        // Initialize Firebase
+        // TODO: Replace the following with your app's Firebase project configuration
+        // See https://firebase.google.com/docs/web/setup
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_DATABASE_NAME.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         // Product counter and data storage
         let productCount = 0;
         const maxProducts = 5;
         let productsData = [];
-        
-        // Base64 encoding/decoding with UTF-8 support
-        function toUrlSafeBase64(str) {
-            return btoa(unescape(encodeURIComponent(str)))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
-        }
-
-        function fromUrlSafeBase64(base64) {
-            base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-            while (base64.length % 4) {
-                base64 += '=';
-            }
-            return decodeURIComponent(escape(atob(base64)));
-        }
         
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             // Check if we're viewing as a customer (via QR code)
             const urlParams = new URLSearchParams(window.location.search);
             const view = urlParams.get('view');
-            const dataParam = urlParams.get('data');
             
             if (view === 'customer') {
-                // Load customer view
-                if (dataParam) {
-                    // Decode data from URL parameter
-                    try {
-                        const decoded = fromUrlSafeBase64(dataParam);
-                        productsData = JSON.parse(decoded);
-                    } catch (e) {
-                        console.error("Error parsing URL data:", e);
-                    }
-                }
                 loadCustomerView();
                 // Hide the shop header for customer view
                 document.getElementById('shop-header').style.display = 'none';
@@ -504,25 +502,25 @@
         function loadCustomerView() {
             const urlParams = new URLSearchParams(window.location.search);
             const shop = urlParams.get('shop') || '';
-            // Try to load products from URL parameters first
-            if (productsData && productsData.length > 0) {
-                displayCustomerProducts();
-            } else {
-                // Fallback to localStorage (for same device)
-                const savedProducts = localStorage.getItem(`shopProducts_${shop}`);
-                
-                if (savedProducts) {
-                    try {
-                        productsData = JSON.parse(savedProducts);
+            if (!shop) {
+                showNoProductsMessage();
+                return;
+            }
+            const shopRef = db.ref('shops/' + shop);
+            shopRef.once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    if (data && data.products) {
+                        productsData = data.products;
                         displayCustomerProducts();
-                    } catch (e) {
-                        console.error("Error parsing saved products:", e);
+                    } else {
                         showNoProductsMessage();
                     }
-                } else {
+                })
+                .catch(e => {
+                    console.error("Error loading products:", e);
                     showNoProductsMessage();
-                }
-            }
+                });
             
             // Show the customer page
             document.getElementById('input-page').style.display = 'none';
@@ -624,16 +622,29 @@
             }
         }
         
+        // Function to hash password
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
         // Function to generate the QR code
-        function generateQRCode() {
+        async function generateQRCode() {
             const shopCode = document.getElementById('shop-code').value.trim();
+            const password = document.getElementById('shop-password').value;
             if (!shopCode) {
                 alert('Please enter a shop code.');
                 return;
             }
+            if (!password) {
+                alert('Please enter a password.');
+                return;
+            }
             // Collect all product data
             productsData = [];
-            let offerDate = '';
             
             for (let i = 1; i <= productCount; i++) {
                 const name = document.getElementById(`product-name-${i}`).value;
@@ -642,9 +653,6 @@
                 const details = document.getElementById(`details-${i}`).value;
                 const offerTill = document.getElementById(`offer-till-${i}`).value;
                 const imageUrl = document.getElementById(`product-image-url-${i}`).value;
-                
-                // Store the first product's offer date for the header
-                if (i === 1) offerDate = offerTill;
                 
                 // Only add products that have a name
                 if (name) {
@@ -665,25 +673,40 @@
                 return;
             }
             
-            // Save products to localStorage (for same device) only for the correct shop code
-            localStorage.setItem(`shopProducts_${shopCode}`, JSON.stringify(productsData));
-            
-            // Also encode product data in URL for cross-device compatibility
-            const productDataString = JSON.stringify(productsData);
-            const base64Data = toUrlSafeBase64(productDataString);
-            
-            // Set the offer date in the QR page
-            // No offer date in header as per requirement
+            const passwordHash = await hashPassword(password);
+            const shopRef = db.ref('shops/' + shopCode);
+            try {
+                const snapshot = await shopRef.once('value');
+                const data = snapshot.val();
+                let canUpdate = false;
+                if (!data || !data.passwordHash) {
+                    canUpdate = true;
+                } else if (data.passwordHash === passwordHash) {
+                    canUpdate = true;
+                }
+                if (!canUpdate) {
+                    alert('Incorrect password for this shop.');
+                    return;
+                }
+                // Update the data
+                await shopRef.update({
+                    products: productsData,
+                    passwordHash: passwordHash
+                });
+            } catch (e) {
+                console.error("Error updating products:", e);
+                alert('Error updating products. Please try again.');
+                return;
+            }
             
             // Display products on QR page
             displayProducts();
             
-            // Generate QR code with data encoded in URL
+            // Generate QR code with fixed URL
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = ''; // Clear previous QR code
             
-            // Create QR code with shop identifier and product data
-            const customerURL = `${window.location.origin}${window.location.pathname}?view=customer&shop=${shopCode}&data=${base64Data}`;
+            const customerURL = `${window.location.origin}${window.location.pathname}?view=customer&shop=${shopCode}`;
             
             new QRCode(qrContainer, {
                 text: customerURL,
@@ -733,8 +756,6 @@
         function displayCustomerProducts() {
             const customerProducts = document.getElementById('customer-products');
             customerProducts.innerHTML = '';
-            
-            // No offer date in header as per requirement
             
             productsData.forEach((product, index) => {
                 if (product.name) { // Only display products with a name
