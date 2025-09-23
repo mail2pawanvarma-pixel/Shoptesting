@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -165,6 +166,14 @@
 
         .btn-success:hover {
             background: #27ae60;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
         }
 
         .action-buttons {
@@ -581,6 +590,10 @@
                     <label for="offer-till-${productCount}">Offer Valid Until:</label>
                     <input type="text" id="offer-till-${productCount}" placeholder="e.g., Today only, Until Sunday, etc.">
                 </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-danger remove-product-btn">Remove Product</button>
+                </div>
             `;
             
             container.appendChild(productForm);
@@ -608,6 +621,10 @@
                 }
             });
             
+            // Remove button listener
+            const removeBtn = productForm.querySelector('.remove-product-btn');
+            removeBtn.addEventListener('click', removeProduct);
+            
             // Function to calculate discount percentage
             function calculateDiscount() {
                 const mrp = parseFloat(mrpInput.value) || 0;
@@ -620,6 +637,49 @@
                     percentageDisplay.textContent = '';
                 }
             }
+        }
+
+        // Function to remove product
+        function removeProduct(event) {
+            if (productCount <= 1) {
+                alert('You must have at least one product.');
+                return;
+            }
+
+            const form = event.target.closest('.product-form');
+            form.remove();
+            productCount--;
+
+            // Renumber remaining forms
+            const remainingForms = Array.from(document.querySelectorAll('.product-form'));
+            remainingForms.sort((a, b) => {
+                const aIndex = parseInt(a.querySelector('[id^="product-name-"]').id.split('-')[2]);
+                const bIndex = parseInt(b.querySelector('[id^="product-name-"]').id.split('-')[2]);
+                return aIndex - bIndex;
+            });
+
+            let newIndex = 0;
+            remainingForms.forEach(form => {
+                newIndex++;
+                const oldIndex = parseInt(form.querySelector('[id^="product-name-"]').id.split('-')[2]);
+                form.querySelector('h3').textContent = `Product #${newIndex}`;
+                renameIds(form, oldIndex, newIndex);
+            });
+        }
+
+        // Function to rename IDs in a form
+        function renameIds(form, oldIndex, newIndex) {
+            const elements = form.querySelectorAll('[id]');
+            elements.forEach(el => {
+                if (el.id.startsWith(`product-name-${oldIndex}`)) el.id = `product-name-${newIndex}`;
+                if (el.id.startsWith(`product-image-url-${oldIndex}`)) el.id = `product-image-url-${newIndex}`;
+                if (el.id.startsWith(`image-preview-${oldIndex}`)) el.id = `image-preview-${newIndex}`;
+                if (el.id.startsWith(`mrp-${oldIndex}`)) el.id = `mrp-${newIndex}`;
+                if (el.id.startsWith(`discounted-price-${oldIndex}`)) el.id = `discounted-price-${newIndex}`;
+                if (el.id.startsWith(`discount-percentage-${oldIndex}`)) el.id = `discount-percentage-${newIndex}`;
+                if (el.id.startsWith(`details-${oldIndex}`)) el.id = `details-${newIndex}`;
+                if (el.id.startsWith(`offer-till-${oldIndex}`)) el.id = `offer-till-${newIndex}`;
+            });
         }
         
         // Function to hash password
@@ -647,12 +707,12 @@
             productsData = [];
             
             for (let i = 1; i <= productCount; i++) {
-                const name = document.getElementById(`product-name-${i}`).value;
-                const mrp = document.getElementById(`mrp-${i}`).value;
-                const discounted = document.getElementById(`discounted-price-${i}`).value;
-                const details = document.getElementById(`details-${i}`).value;
-                const offerTill = document.getElementById(`offer-till-${i}`).value;
-                const imageUrl = document.getElementById(`product-image-url-${i}`).value;
+                const name = document.getElementById(`product-name-${i}`)?.value;
+                const mrp = document.getElementById(`mrp-${i}`)?.value;
+                const discounted = document.getElementById(`discounted-price-${i}`)?.value;
+                const details = document.getElementById(`details-${i}`)?.value;
+                const offerTill = document.getElementById(`offer-till-${i}`)?.value;
+                const imageUrl = document.getElementById(`product-image-url-${i}`)?.value;
                 
                 // Only add products that have a name
                 if (name) {
