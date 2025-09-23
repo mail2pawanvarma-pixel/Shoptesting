@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -481,13 +480,23 @@
             document.getElementById('input-page').style.display = 'block';
             document.getElementById('qr-page').style.display = 'none';
             document.getElementById('customer-page').style.display = 'none';
+            
+            // Load existing products if any
+            const shopCode = document.getElementById('shop-code').value.trim();
+            if (shopCode) {
+                const savedProducts = localStorage.getItem(`shopProducts_${shopCode}`);
+                if (savedProducts) {
+                    productsData = JSON.parse(savedProducts);
+                    displayProducts();
+                }
+            }
         }
         
         // Function to load customer view
         function loadCustomerView() {
             const urlParams = new URLSearchParams(window.location.search);
             const shop = urlParams.get('shop') || '';
-            // Fallback to localStorage (for same device)
+            // Load products from localStorage
             const savedProducts = localStorage.getItem(`shopProducts_${shop}`);
             
             if (savedProducts) {
@@ -691,27 +700,26 @@
                 return;
             }
             
-            // Save products to localStorage (for same device)
+            // Save updated products to localStorage
             localStorage.setItem(`shopProducts_${shopCode}`, JSON.stringify(productsData));
             
-            // Display products on QR page
+            // Display updated products on QR page
             displayProducts();
             
-            // Generate QR code with data encoded in URL
+            // Generate or update QR code with fixed URL
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ''; // Clear previous QR code
-            
-            // Create QR code with shop identifier and product data
-            const customerURL = `${window.location.origin}${window.location.pathname}?view=customer&shop=${shopCode}`;
-            
-            new QRCode(qrContainer, {
-                text: customerURL,
-                width: 200,
-                height: 200,
-                colorDark: "#2c3e50",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            if (qrContainer.innerHTML === '') {
+                // Generate QR code only if it hasn't been generated yet
+                const customerURL = `${window.location.origin}${window.location.pathname}?view=customer&shop=${shopCode}`;
+                new QRCode(qrContainer, {
+                    text: customerURL,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#2c3e50",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
             
             // Switch to QR page
             document.getElementById('input-page').style.display = 'none';
