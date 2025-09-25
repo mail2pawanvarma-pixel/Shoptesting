@@ -3,321 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Shop Discount QR Generator</title>
+    <title>Shop Discount Manager</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #34495e;
+            --success: #2ecc71;
+            --warning: #f39c12;
+        }
+        
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
+        
         body {
             background-color: #f5f7fa;
-            color: #333;
+            color: var(--dark);
             line-height: 1.6;
         }
-
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-
+        
+        .page {
+            display: none;
+            min-height: 100vh;
+        }
+        
+        .active-page {
+            display: block;
+        }
+        
+        /* Header Styles */
         header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
-
-        header h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
         }
-
+        
+        .nav-buttons button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+        
+        .nav-buttons button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Login Page Styles */
         .login-container {
             max-width: 400px;
             margin: 50px auto;
+            background: white;
             padding: 30px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
-
+        
         .login-container h2 {
             text-align: center;
             margin-bottom: 20px;
-            color: #2575fc;
+            color: var(--primary);
         }
-
+        
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-
+        
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+            margin-bottom: 5px;
+            font-weight: 500;
         }
-
-        .form-group input, .form-group textarea {
+        
+        .form-group input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
+            border-radius: 4px;
+            font-size: 16px;
         }
-
-        .form-group textarea {
-            height: 100px;
-            resize: vertical;
-        }
-
+        
         .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #2575fc;
+            background: var(--secondary);
             color: white;
             border: none;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background-color 0.3s;
-            text-align: center;
+            font-size: 16px;
             width: 100%;
+            transition: background 0.3s;
         }
-
+        
         .btn:hover {
-            background-color: #1a68e8;
+            background: #2980b9;
         }
-
-        .btn-secondary {
-            background-color: #6c757d;
+        
+        .btn-accent {
+            background: var(--accent);
         }
-
-        .btn-secondary:hover {
-            background-color: #5a6268;
+        
+        .btn-accent:hover {
+            background: #c0392b;
         }
-
-        .dashboard {
-            display: none;
+        
+        .error-message {
+            color: var(--accent);
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 4px;
         }
-
-        .product-form {
-            background-color: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
-        }
-
-        .product-form h3 {
+        
+        /* Dashboard Styles */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            color: #2575fc;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
         }
-
-        .product-grid {
+        
+        .dashboard-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .dashboard-actions button {
+            padding: 10px 15px;
+        }
+        
+        .product-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-field {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .voice-input {
+            position: relative;
+        }
+        
+        .voice-btn {
+            position: absolute;
+            right: 10px;
+            top: 35px;
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .products-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
+            margin-top: 30px;
         }
-
+        
         .product-card {
-            background-color: white;
-            border-radius: 10px;
+            background: white;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
             transition: transform 0.3s;
         }
-
+        
         .product-card:hover {
             transform: translateY(-5px);
         }
-
+        
         .product-image {
             height: 200px;
-            background-color: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+            background-size: cover;
+            background-position: center;
         }
-
-        .product-image img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: cover;
+        
+        .product-info {
+            padding: 15px;
         }
-
-        .product-details {
-            padding: 20px;
-        }
-
-        .product-details h4 {
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-            color: #333;
-        }
-
-        .product-price {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .original-price {
-            text-decoration: line-through;
-            color: #999;
-            margin-right: 10px;
-        }
-
-        .discounted-price {
-            color: #e74c3c;
+        
+        .product-name {
+            font-size: 18px;
             font-weight: bold;
-            font-size: 1.1rem;
+            margin-bottom: 10px;
         }
-
-        .discount-percentage {
-            background-color: #e74c3c;
+        
+        .product-pricing {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .mrp {
+            text-decoration: line-through;
+            color: #7f8c8d;
+        }
+        
+        .discounted-price {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .discount-badge {
+            background: var(--accent);
             color: white;
             padding: 3px 8px;
             border-radius: 4px;
-            font-size: 0.9rem;
-            margin-left: 10px;
-            font-weight: bold;
+            font-size: 14px;
         }
-
-        .product-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
+        
+        .product-details {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            font-size: 14px;
         }
-
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            width: auto;
+        
+        .valid-date {
+            font-size: 14px;
+            color: var(--warning);
         }
-
-        .btn-danger {
-            background-color: #e74c3c;
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-
-        .qr-section {
-            text-align: center;
-            margin-top: 40px;
-            padding: 30px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .qr-code {
-            margin: 20px auto;
-            padding: 20px;
-            background-color: white;
-            display: inline-block;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .voice-input {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .voice-btn {
-            background: none;
+        
+        .delete-btn {
+            background: var(--accent);
+            color: white;
             border: none;
-            font-size: 1.5rem;
+            padding: 5px 10px;
+            border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px;
-            color: #2575fc;
-        }
-
-        .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .discount-calc {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
             margin-top: 10px;
-            font-weight: bold;
-            text-align: center;
+            width: 100%;
         }
-
+        
+        /* QR Code Section */
+        .qr-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        #qrcode {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        /* Customer View Styles */
+        .customer-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .shop-name {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .discounts-title {
+            color: var(--accent);
+            font-size: 24px;
+        }
+        
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .product-grid {
-                grid-template-columns: 1fr;
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
             }
             
-            .action-buttons {
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .dashboard-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .form-row {
                 flex-direction: column;
             }
             
-            .btn {
-                width: 100%;
-                margin-bottom: 10px;
+            .products-list {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Login Section -->
-        <div id="login-section">
-            <header>
-                <h1>Shop Discount QR Generator</h1>
-                <p>Create attractive discount offers and generate QR codes for your customers</p>
-            </header>
-            
+    <!-- Login Page -->
+    <div id="login-page" class="page active-page">
+        <div class="container">
             <div class="login-container">
-                <h2>Admin Login</h2>
-                <div id="login-message" class="message"></div>
+                <h2>Shopkeeper Login</h2>
                 <form id="login-form">
                     <div class="form-group">
                         <label for="email">Email</label>
@@ -328,79 +360,97 @@
                         <input type="password" id="password" placeholder="Enter your password" required>
                     </div>
                     <button type="submit" class="btn">Login</button>
+                    <div id="login-error" class="error-message" style="display: none;"></div>
                 </form>
                 <p style="text-align: center; margin-top: 15px;">
-                    Don't have an account? <a href="#" id="show-register">Register here</a>
+                    Don't have an account? <a href="#" id="show-signup">Sign up</a>
                 </p>
             </div>
             
-            <div class="login-container" id="register-container" style="display: none;">
-                <h2>Admin Registration</h2>
-                <div id="register-message" class="message"></div>
-                <form id="register-form">
+            <div class="login-container" id="signup-container" style="display: none;">
+                <h2>Create Account</h2>
+                <form id="signup-form">
                     <div class="form-group">
-                        <label for="reg-email">Email</label>
-                        <input type="email" id="reg-email" placeholder="Enter your email" required>
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" placeholder="Enter your email" required>
                     </div>
                     <div class="form-group">
-                        <label for="reg-password">Password</label>
-                        <input type="password" id="reg-password" placeholder="Enter your password (min. 6 characters)" required>
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" placeholder="Create a password" required>
                     </div>
                     <div class="form-group">
-                        <label for="reg-confirm-password">Confirm Password</label>
-                        <input type="password" id="reg-confirm-password" placeholder="Confirm your password" required>
+                        <label for="shop-name">Shop Name</label>
+                        <input type="text" id="shop-name" placeholder="Enter your shop name" required>
                     </div>
-                    <button type="submit" class="btn">Register</button>
+                    <button type="submit" class="btn">Sign Up</button>
+                    <div id="signup-error" class="error-message" style="display: none;"></div>
                 </form>
                 <p style="text-align: center; margin-top: 15px;">
-                    Already have an account? <a href="#" id="show-login">Login here</a>
+                    Already have an account? <a href="#" id="show-login">Login</a>
                 </p>
             </div>
         </div>
-        
-        <!-- Dashboard Section -->
-        <div id="dashboard-section" class="dashboard">
-            <header>
-                <h1>Shop Discount QR Generator</h1>
-                <p>Welcome, <span id="user-email"></span>! <a href="#" id="logout" style="color: white; text-decoration: underline;">Logout</a></p>
-            </header>
-            
-            <div id="dashboard-message" class="message"></div>
-            
-            <div class="product-form">
-                <h3>Add Discounted Products</h3>
-                <p>Fill in the details of your discounted products below. You can add up to 10 products.</p>
-                
-                <div id="product-forms-container">
-                    <!-- Product forms will be added here dynamically -->
+    </div>
+    
+    <!-- Dashboard Page -->
+    <div id="dashboard-page" class="page">
+        <header>
+            <div class="container header-content">
+                <div class="logo">Shop Discount Manager</div>
+                <div class="nav-buttons">
+                    <button id="logout-btn">Logout</button>
                 </div>
-                
-                <div class="action-buttons">
-                    <button id="add-product-btn" class="btn btn-secondary">Add Another Product</button>
-                    <button id="update-products-btn" class="btn">Update Products</button>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="dashboard-header">
+                <h1>Manage Discounted Products</h1>
+                <div class="dashboard-actions">
+                    <button id="add-product-btn" class="btn">Add Another Product</button>
                     <button id="generate-qr-btn" class="btn">Generate QR Code</button>
+                    <button id="update-products-btn" class="btn btn-accent">Update Products</button>
                 </div>
             </div>
             
-            <div class="product-grid" id="products-container">
+            <div id="product-forms">
+                <!-- Product forms will be added here dynamically -->
+            </div>
+            
+            <div id="qr-section" class="qr-section" style="display: none;">
+                <h2>Your Shop's QR Code</h2>
+                <p>Customers can scan this code to view your current discounts</p>
+                <div id="qrcode"></div>
+                <p><strong>Shop URL:</strong> <span id="shop-url"></span></p>
+            </div>
+            
+            <div class="products-list" id="products-list">
                 <!-- Product cards will be displayed here -->
             </div>
+        </div>
+    </div>
+    
+    <!-- Customer View Page -->
+    <div id="customer-page" class="page">
+        <header>
+            <div class="container header-content">
+                <div class="logo" id="customer-shop-name">Shop Discounts</div>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="customer-header">
+                <h1 class="shop-name" id="display-shop-name">Shop Name</h1>
+                <h2 class="discounts-title">Current Discounts</h2>
+            </div>
             
-            <div class="qr-section" id="qr-section" style="display: none;">
-                <h2>Your Shop QR Code</h2>
-                <p>Display this QR code in your shop for customers to scan and view discounts.</p>
-                <div class="qr-code" id="qr-code"></div>
-                <p>This QR code will remain the same even when you update your products.</p>
+            <div class="products-list" id="customer-products-list">
+                <!-- Discounted products will be displayed here -->
             </div>
         </div>
     </div>
 
-    <!-- Firebase and QR Code libraries -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
+    <!-- Firebase Configuration -->
     <script>
         // INSERT YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
@@ -412,52 +462,69 @@
   messagingSenderId: "860685441277",
   appId: "1:860685441277:web:8ba1002695cecf53cf8694"
 };
-
+        
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
-
+    </script>
+    
+    <script>
         // DOM Elements
-        const loginSection = document.getElementById('login-section');
-        const dashboardSection = document.getElementById('dashboard-section');
+        const loginPage = document.getElementById('login-page');
+        const dashboardPage = document.getElementById('dashboard-page');
+        const customerPage = document.getElementById('customer-page');
+        
         const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const loginMessage = document.getElementById('login-message');
-        const registerMessage = document.getElementById('register-message');
-        const dashboardMessage = document.getElementById('dashboard-message');
-        const showRegisterLink = document.getElementById('show-register');
+        const signupForm = document.getElementById('signup-form');
+        const loginError = document.getElementById('login-error');
+        const signupError = document.getElementById('signup-error');
+        
+        const showSignupLink = document.getElementById('show-signup');
         const showLoginLink = document.getElementById('show-login');
-        const registerContainer = document.getElementById('register-container');
-        const logoutLink = document.getElementById('logout');
-        const userEmailSpan = document.getElementById('user-email');
+        const signupContainer = document.getElementById('signup-container');
+        
+        const logoutBtn = document.getElementById('logout-btn');
         const addProductBtn = document.getElementById('add-product-btn');
-        const updateProductsBtn = document.getElementById('update-products-btn');
         const generateQrBtn = document.getElementById('generate-qr-btn');
-        const productFormsContainer = document.getElementById('product-forms-container');
-        const productsContainer = document.getElementById('products-container');
+        const updateProductsBtn = document.getElementById('update-products-btn');
+        
+        const productFormsContainer = document.getElementById('product-forms');
+        const productsList = document.getElementById('products-list');
         const qrSection = document.getElementById('qr-section');
-        const qrCodeDiv = document.getElementById('qr-code');
-
-        // Product counter
+        const qrcodeDiv = document.getElementById('qrcode');
+        const shopUrlSpan = document.getElementById('shop-url');
+        
+        const customerProductsList = document.getElementById('customer-products-list');
+        const customerShopName = document.getElementById('customer-shop-name');
+        const displayShopName = document.getElementById('display-shop-name');
+        
+        // Global variables
+        let currentUser = null;
+        let shopData = null;
         let productCount = 0;
         const maxProducts = 10;
-        let products = [];
-
-        // Show/hide register form
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerContainer.style.display = 'block';
-            loginForm.parentElement.style.display = 'none';
-        });
-
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerContainer.style.display = 'none';
-            loginForm.parentElement.style.display = 'block';
-        });
-
-        // Login function
+        
+        // Check if we're showing customer view
+        const urlParams = new URLSearchParams(window.location.search);
+        const shopId = urlParams.get('shop');
+        
+        if (shopId) {
+            showCustomerView(shopId);
+        } else {
+            // Authentication state observer
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user;
+                    loadShopData();
+                    showPage(dashboardPage);
+                } else {
+                    showPage(loginPage);
+                }
+            });
+        }
+        
+        // Event Listeners
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -466,420 +533,370 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     // Login successful
-                    showMessage(loginMessage, 'Login successful!', 'success');
-                    setTimeout(() => {
-                        loadDashboard(userCredential.user);
-                    }, 1000);
+                    loginError.style.display = 'none';
                 })
                 .catch((error) => {
-                    showMessage(loginMessage, error.message, 'error');
+                    loginError.textContent = error.message;
+                    loginError.style.display = 'block';
                 });
         });
-
-        // Register function
-        registerForm.addEventListener('submit', (e) => {
+        
+        signupForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
-            const confirmPassword = document.getElementById('reg-confirm-password').value;
-            
-            if (password !== confirmPassword) {
-                showMessage(registerMessage, 'Passwords do not match!', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage(registerMessage, 'Password must be at least 6 characters!', 'error');
-                return;
-            }
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const shopName = document.getElementById('shop-name').value;
             
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    // Registration successful
-                    showMessage(registerMessage, 'Registration successful!', 'success');
-                    setTimeout(() => {
-                        loadDashboard(userCredential.user);
-                    }, 1000);
+                    // Create shop data in database
+                    const user = userCredential.user;
+                    return database.ref('shops/' + user.uid).set({
+                        name: shopName,
+                        email: email,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                })
+                .then(() => {
+                    // Signup successful
+                    signupError.style.display = 'none';
                 })
                 .catch((error) => {
-                    showMessage(registerMessage, error.message, 'error');
+                    signupError.textContent = error.message;
+                    signupError.style.display = 'block';
                 });
         });
-
-        // Logout function
-        logoutLink.addEventListener('click', (e) => {
+        
+        showSignupLink.addEventListener('click', (e) => {
             e.preventDefault();
-            auth.signOut().then(() => {
-                loginSection.style.display = 'block';
-                dashboardSection.style.display = 'none';
-                products = [];
-                productCount = 0;
-                productFormsContainer.innerHTML = '';
-                productsContainer.innerHTML = '';
-                qrSection.style.display = 'none';
-            });
+            document.querySelector('.login-container').style.display = 'none';
+            signupContainer.style.display = 'block';
         });
-
-        // Add product form
-        addProductBtn.addEventListener('click', () => {
+        
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupContainer.style.display = 'none';
+            document.querySelector('.login-container').style.display = 'block';
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+        
+        addProductBtn.addEventListener('click', addProductForm);
+        generateQrBtn.addEventListener('click', generateQRCode);
+        updateProductsBtn.addEventListener('click', updateProducts);
+        
+        // Functions
+        function showPage(page) {
+            loginPage.classList.remove('active-page');
+            dashboardPage.classList.remove('active-page');
+            customerPage.classList.remove('active-page');
+            page.classList.add('active-page');
+        }
+        
+        function loadShopData() {
+            database.ref('shops/' + currentUser.uid).once('value')
+                .then((snapshot) => {
+                    shopData = snapshot.val();
+                    loadProducts();
+                });
+        }
+        
+        function loadProducts() {
+            database.ref('products/' + currentUser.uid).once('value')
+                .then((snapshot) => {
+                    const products = snapshot.val();
+                    productsList.innerHTML = '';
+                    productFormsContainer.innerHTML = '';
+                    productCount = 0;
+                    
+                    if (products) {
+                        Object.keys(products).forEach(key => {
+                            addProductForm(products[key]);
+                            displayProductCard(products[key], key);
+                        });
+                    } else {
+                        addProductForm();
+                    }
+                });
+        }
+        
+        function addProductForm(productData = null) {
             if (productCount >= maxProducts) {
-                showMessage(dashboardMessage, `Maximum ${maxProducts} products allowed!`, 'error');
+                alert(`Maximum ${maxProducts} products allowed`);
                 return;
             }
-            addProductForm();
-        });
-
-        // Update products
-        updateProductsBtn.addEventListener('click', () => {
-            updateProducts();
-        });
-
-        // Generate QR code
-        generateQrBtn.addEventListener('click', () => {
-            generateQRCode();
-        });
-
-        // Function to show message
-        function showMessage(element, message, type) {
-            element.textContent = message;
-            element.className = `message ${type}`;
-            element.style.display = 'block';
             
-            setTimeout(() => {
-                element.style.display = 'none';
-            }, 5000);
-        }
-
-        // Function to load dashboard
-        function loadDashboard(user) {
-            loginSection.style.display = 'none';
-            dashboardSection.style.display = 'block';
-            userEmailSpan.textContent = user.email;
-            
-            // Load existing products
-            loadProducts(user.uid);
-        }
-
-        // Function to calculate discount percentage
-        function calculateDiscount(mrp, discountedPrice) {
-            if (!mrp || !discountedPrice || mrp <= 0) return 0;
-            return Math.round(((mrp - discountedPrice) / mrp) * 100);
-        }
-
-        // Function to update discount display
-        function updateDiscountDisplay(form) {
-            const mrp = parseFloat(form.querySelector('.product-mrp').value) || 0;
-            const discountedPrice = parseFloat(form.querySelector('.product-discounted-price').value) || 0;
-            const discountPercentage = calculateDiscount(mrp, discountedPrice);
-            
-            let discountDisplay = form.querySelector('.discount-display');
-            if (!discountDisplay) {
-                discountDisplay = document.createElement('div');
-                discountDisplay.className = 'discount-calc';
-                form.querySelector('.product-discounted-price').parentNode.appendChild(discountDisplay);
-            }
-            
-            if (mrp > 0 && discountedPrice > 0) {
-                discountDisplay.textContent = `Discount: ${discountPercentage}% OFF (You save: ₹${mrp - discountedPrice})`;
-                discountDisplay.style.display = 'block';
-            } else {
-                discountDisplay.style.display = 'none';
-            }
-        }
-
-        // Function to add product form
-        function addProductForm(product = null) {
             productCount++;
-            const productId = product ? product.id : `product-${productCount}`;
+            const formId = 'product-form-' + productCount;
             
-            const productForm = document.createElement('div');
-            productForm.className = 'product-form-item';
-            productForm.innerHTML = `
-                <h4>Product #${productCount}</h4>
-                <div class="form-group">
-                    <label>Product Name</label>
-                    <input type="text" class="product-name" placeholder="Enter product name" value="${product ? product.name : ''}">
-                    <div class="voice-input">
-                        <button type="button" class="voice-btn" data-field="name">🎤</button>
+            const formHTML = `
+                <div class="product-form" id="${formId}">
+                    <h3>Product ${productCount}</h3>
+                    <div class="form-row">
+                        <div class="form-field voice-input">
+                            <label for="product-name-${productCount}">Product Name</label>
+                            <input type="text" id="product-name-${productCount}" placeholder="Enter product name" 
+                                value="${productData ? productData.name : ''}" required>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('product-name-${productCount}')">🎤</button>
+                        </div>
+                        <div class="form-field">
+                            <label for="product-image-${productCount}">Image URL</label>
+                            <input type="url" id="product-image-${productCount}" placeholder="Enter image URL" 
+                                value="${productData ? productData.imageUrl : ''}">
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Product Image URL</label>
-                    <input type="text" class="product-image-url" placeholder="Enter image URL" value="${product ? product.image : ''}">
-                    <small>You can also use a direct image URL</small>
-                    ${product && product.image ? `<div><img src="${product.image}" style="max-width: 100px; margin-top: 10px;"></div>` : ''}
-                </div>
-                <div class="form-group">
-                    <label>MRP (₹)</label>
-                    <input type="number" class="product-mrp" placeholder="Original price" value="${product ? product.mrp : ''}" min="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Discounted Price (₹)</label>
-                    <input type="number" class="product-discounted-price" placeholder="Discounted price" value="${product ? product.discountedPrice : ''}" min="0" step="0.01">
-                    <!-- Discount percentage will be displayed here -->
-                </div>
-                <div class="form-group">
-                    <label>Product Details</label>
-                    <textarea class="product-details" placeholder="Enter product description">${product ? product.details : ''}</textarea>
-                    <div class="voice-input">
-                        <button type="button" class="voice-btn" data-field="details">🎤</button>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="product-mrp-${productCount}">MRP (₹)</label>
+                            <input type="number" id="product-mrp-${productCount}" placeholder="Enter MRP" 
+                                value="${productData ? productData.mrp : ''}" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="product-discounted-price-${productCount}">Discounted Price (₹)</label>
+                            <input type="number" id="product-discounted-price-${productCount}" placeholder="Enter discounted price" 
+                                value="${productData ? productData.discountedPrice : ''}" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="product-discount-percent-${productCount}">Discount Percentage</label>
+                            <input type="number" id="product-discount-percent-${productCount}" placeholder="Auto-calculated" 
+                                value="${productData ? productData.discountPercent : ''}" readonly>
+                        </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-field voice-input" style="flex: 2;">
+                            <label for="product-details-${productCount}">Product Details</label>
+                            <textarea id="product-details-${productCount}" placeholder="Enter product details" rows="3">${productData ? productData.details : ''}</textarea>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('product-details-${productCount}')" style="top: 35px;">🎤</button>
+                        </div>
+                        <div class="form-field">
+                            <label for="product-valid-date-${productCount}">Offer Valid Until</label>
+                            <input type="date" id="product-valid-date-${productCount}" 
+                                value="${productData ? productData.validDate : ''}" required>
+                        </div>
+                    </div>
+                    <button type="button" class="delete-btn" onclick="deleteProductForm('${formId}', ${productData ? `'${Object.keys(productsList.children).find(key => productsList.children[key].dataset.id === productData.id)}'` : 'null'})">Delete Product</button>
                 </div>
-                <div class="form-group">
-                    <label>Offer Valid Until</label>
-                    <input type="text" class="product-valid-until" placeholder="e.g., Today only, Until Sunday" value="${product ? product.validUntil : ''}">
-                </div>
-                <button type="button" class="btn btn-danger btn-small remove-product-btn">Remove Product</button>
-                <hr style="margin: 20px 0;">
             `;
             
-            productFormsContainer.appendChild(productForm);
+            productFormsContainer.insertAdjacentHTML('beforeend', formHTML);
             
-            // Add event listeners for price fields to update discount
-            const mrpInput = productForm.querySelector('.product-mrp');
-            const discountedPriceInput = productForm.querySelector('.product-discounted-price');
+            // Add event listeners for price calculation
+            const mrpInput = document.getElementById(`product-mrp-${productCount}`);
+            const discountedPriceInput = document.getElementById(`product-discounted-price-${productCount}`);
+            const discountPercentInput = document.getElementById(`product-discount-percent-${productCount}`);
             
-            mrpInput.addEventListener('input', () => updateDiscountDisplay(productForm));
-            discountedPriceInput.addEventListener('input', () => updateDiscountDisplay(productForm));
+            if (mrpInput && discountedPriceInput) {
+                mrpInput.addEventListener('input', calculateDiscount);
+                discountedPriceInput.addEventListener('input', calculateDiscount);
+            }
             
-            // Initial discount calculation
-            updateDiscountDisplay(productForm);
-            
-            // Add event listener for remove button
-            const removeBtn = productForm.querySelector('.remove-product-btn');
-            removeBtn.addEventListener('click', () => {
-                productForm.remove();
-                productCount--;
+            function calculateDiscount() {
+                const mrp = parseFloat(mrpInput.value) || 0;
+                const discountedPrice = parseFloat(discountedPriceInput.value) || 0;
                 
-                // If this was an existing product, mark it for deletion
-                if (product && product.id) {
-                    if (!products.find(p => p.id === product.id)) {
-                        products.push({...product, deleted: true});
-                    }
+                if (mrp > 0 && discountedPrice > 0 && discountedPrice <= mrp) {
+                    const discountPercent = ((mrp - discountedPrice) / mrp * 100).toFixed(2);
+                    discountPercentInput.value = discountPercent;
+                } else {
+                    discountPercentInput.value = '';
                 }
-            });
-            
-            // Add voice input functionality
-            const voiceBtns = productForm.querySelectorAll('.voice-btn');
-            voiceBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const field = btn.getAttribute('data-field');
-                    startVoiceInput(productForm, field);
-                });
-            });
+            }
         }
-
-        // Function to start voice input
-        function startVoiceInput(form, field) {
-            if (!('webkitSpeechRecognition' in window)) {
-                showMessage(dashboardMessage, 'Voice recognition not supported in this browser', 'error');
-                return;
-            }
+        
+        function displayProductCard(productData, productId) {
+            const discountPercent = productData.discountPercent || 
+                ((productData.mrp - productData.discountedPrice) / productData.mrp * 100).toFixed(2);
             
-            const recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            const cardHTML = `
+                <div class="product-card" data-id="${productId}">
+                    <div class="product-image" style="background-image: url('${productData.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}')"></div>
+                    <div class="product-info">
+                        <div class="product-name">${productData.name}</div>
+                        <div class="product-pricing">
+                            <div>
+                                <span class="mrp">₹${productData.mrp}</span>
+                                <span class="discounted-price">₹${productData.discountedPrice}</span>
+                            </div>
+                            <span class="discount-badge">${discountPercent}% OFF</span>
+                        </div>
+                        <div class="product-details">${productData.details}</div>
+                        <div class="valid-date">Valid until: ${formatDate(productData.validDate)}</div>
+                    </div>
+                </div>
+            `;
             
-            let inputField;
-            if (field === 'name') {
-                inputField = form.querySelector('.product-name');
-            } else if (field === 'details') {
-                inputField = form.querySelector('.product-details');
-            }
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                if (field === 'name') {
-                    inputField.value = transcript;
-                } else if (field === 'details') {
-                    inputField.value = transcript;
+            productsList.insertAdjacentHTML('beforeend', cardHTML);
+        }
+        
+        function deleteProductForm(formId, productCardId) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                const form = document.getElementById(formId);
+                if (form) form.remove();
+                
+                if (productCardId) {
+                    const card = document.querySelector(`[data-id="${productCardId}"]`);
+                    if (card) card.remove();
+                    
+                    // Remove from database
+                    database.ref('products/' + currentUser.uid + '/' + productCardId).remove();
                 }
-            };
-            
-            recognition.onerror = (event) => {
-                showMessage(dashboardMessage, 'Error occurred in recognition: ' + event.error, 'error');
-            };
-            
-            recognition.start();
+                
+                productCount--;
+            }
         }
-
-        // Function to load products from Firebase
-        function loadProducts(userId) {
-            database.ref('shops/' + userId + '/products').once('value')
-                .then((snapshot) => {
-                    const productsData = snapshot.val();
-                    if (productsData) {
-                        products = Object.keys(productsData).map(key => ({
-                            id: key,
-                            ...productsData[key]
-                        }));
-                        
-                        // Clear forms and display products
-                        productFormsContainer.innerHTML = '';
-                        productsContainer.innerHTML = '';
-                        productCount = 0;
-                        
-                        products.forEach(product => {
-                            if (!product.deleted) {
-                                addProductForm(product);
-                                displayProductCard(product);
-                            }
-                        });
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error loading products:', error);
-                });
-        }
-
-        // Function to update products in Firebase
+        
         function updateProducts() {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            // Collect product data from forms
-            const productForms = document.querySelectorAll('.product-form-item');
-            const updatedProducts = [];
+            const productForms = document.querySelectorAll('.product-form');
+            const products = {};
             
             productForms.forEach((form, index) => {
-                const name = form.querySelector('.product-name').value;
-                const mrp = form.querySelector('.product-mrp').value;
-                const discountedPrice = form.querySelector('.product-discounted-price').value;
-                const details = form.querySelector('.product-details').value;
-                const validUntil = form.querySelector('.product-valid-until').value;
-                const imageUrl = form.querySelector('.product-image-url').value;
+                const formIndex = index + 1;
+                const name = document.getElementById(`product-name-${formIndex}`).value;
+                const imageUrl = document.getElementById(`product-image-${formIndex}`).value;
+                const mrp = parseFloat(document.getElementById(`product-mrp-${formIndex}`).value);
+                const discountedPrice = parseFloat(document.getElementById(`product-discounted-price-${formIndex}`).value);
+                const discountPercent = document.getElementById(`product-discount-percent-${formIndex}`).value;
+                const details = document.getElementById(`product-details-${formIndex}`).value;
+                const validDate = document.getElementById(`product-valid-date-${formIndex}`).value;
                 
-                // Get existing product ID or generate new one
-                let productId = `product-${Date.now()}-${index}`;
-                const existingProduct = products.find(p => 
-                    form.querySelector('.product-name').value === p.name
-                );
-                
-                if (existingProduct) {
-                    productId = existingProduct.id;
-                }
-                
-                if (name && mrp && discountedPrice) {
-                    updatedProducts.push({
-                        id: productId,
+                if (name && mrp && discountedPrice && validDate) {
+                    const productId = 'product' + Date.now() + index;
+                    products[productId] = {
                         name,
-                        image: imageUrl,
-                        mrp: parseFloat(mrp),
-                        discountedPrice: parseFloat(discountedPrice),
+                        imageUrl,
+                        mrp,
+                        discountedPrice,
+                        discountPercent,
                         details,
-                        validUntil
-                    });
+                        validDate
+                    };
                 }
             });
             
-            // Add products marked for deletion
-            products.forEach(product => {
-                if (product.deleted && !updatedProducts.find(p => p.id === product.id)) {
-                    updatedProducts.push({...product, deleted: true});
-                }
-            });
-            
-            // Filter out deleted products before saving
-            const productsToSave = updatedProducts.filter(p => !p.deleted);
-            
-            // Save to Firebase
-            database.ref('shops/' + user.uid + '/products').set(productsToSave)
+            // Save to database
+            database.ref('products/' + currentUser.uid).set(products)
                 .then(() => {
-                    showMessage(dashboardMessage, 'Products updated successfully!', 'success');
-                    products = productsToSave;
-                    
-                    // Refresh product display
-                    productsContainer.innerHTML = '';
-                    products.forEach(product => {
-                        displayProductCard(product);
-                    });
+                    alert('Products updated successfully!');
+                    loadProducts(); // Reload to get the correct IDs
                 })
                 .catch((error) => {
-                    showMessage(dashboardMessage, 'Error updating products: ' + error.message, 'error');
+                    alert('Error updating products: ' + error.message);
                 });
         }
-
-        // Function to display product card
-        function displayProductCard(product) {
-            const discountPercentage = calculateDiscount(product.mrp, product.discountedPrice);
-            
-            const productCard = document.createElement('div');
-            productCard.className = 'product-card';
-            productCard.innerHTML = `
-                <div class="product-image">
-                    ${product.image ? `<img src="${product.image}" alt="${product.name}" onerror="this.style.display='none'">` : 
-                    '<div style="color: #999; text-align: center; padding: 20px;">No Image Available</div>'}
-                </div>
-                <div class="product-details">
-                    <h4>${product.name}</h4>
-                    <div class="product-price">
-                        <span class="original-price">₹${product.mrp}</span>
-                        <span class="discounted-price">₹${product.discountedPrice}</span>
-                        <span class="discount-percentage">${discountPercentage}% OFF</span>
-                    </div>
-                    <p>${product.details}</p>
-                    <p><strong>Valid until:</strong> ${product.validUntil}</p>
-                    <div class="product-actions">
-                        <button class="btn btn-danger btn-small delete-product-btn" data-id="${product.id}">Delete</button>
-                    </div>
-                </div>
-            `;
-            
-            productsContainer.appendChild(productCard);
-            
-            // Add event listener for delete button
-            const deleteBtn = productCard.querySelector('.delete-product-btn');
-            deleteBtn.addEventListener('click', () => {
-                // Mark product for deletion
-                const productIndex = products.findIndex(p => p.id === product.id);
-                if (productIndex !== -1) {
-                    products[productIndex].deleted = true;
-                    
-                    // Remove from display
-                    productCard.remove();
-                    
-                    showMessage(dashboardMessage, 'Product marked for deletion. Click "Update Products" to save changes.', 'success');
-                }
-            });
-        }
-
-        // Function to generate QR code
+        
         function generateQRCode() {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            // In a real app, this would be the URL of your user panel
-            // For now, we'll use a placeholder that includes the shop ID
-            const shopUrl = `https://yoursite.com/user-panel.html?shop=${user.uid}`;
+            const shopUrl = window.location.origin + window.location.pathname + '?shop=' + currentUser.uid;
+            shopUrlSpan.textContent = shopUrl;
             
             // Clear previous QR code
-            qrCodeDiv.innerHTML = '';
+            qrcodeDiv.innerHTML = '';
             
             // Generate new QR code
-            new QRCode(qrCodeDiv, {
-                text: shopUrl,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+            QRCode.toCanvas(qrcodeDiv, shopUrl, { width: 200 }, (error) => {
+                if (error) console.error(error);
             });
             
             qrSection.style.display = 'block';
-            showMessage(dashboardMessage, 'QR code generated successfully!', 'success');
         }
-
-        // Check auth state on page load
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                loadDashboard(user);
+        
+        function showCustomerView(shopId) {
+            // Load shop data
+            database.ref('shops/' + shopId).once('value')
+                .then((snapshot) => {
+                    const shop = snapshot.val();
+                    if (shop) {
+                        customerShopName.textContent = shop.name + ' Discounts';
+                        displayShopName.textContent = shop.name;
+                        
+                        // Load products
+                        return database.ref('products/' + shopId).once('value');
+                    } else {
+                        throw new Error('Shop not found');
+                    }
+                })
+                .then((snapshot) => {
+                    const products = snapshot.val();
+                    customerProductsList.innerHTML = '';
+                    
+                    if (products) {
+                        Object.values(products).forEach(product => {
+                            displayCustomerProduct(product);
+                        });
+                    } else {
+                        customerProductsList.innerHTML = '<p style="text-align: center; padding: 20px;">No current discounts available.</p>';
+                    }
+                    
+                    showPage(customerPage);
+                })
+                .catch((error) => {
+                    customerProductsList.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading shop data.</p>';
+                    showPage(customerPage);
+                });
+        }
+        
+        function displayCustomerProduct(productData) {
+            const discountPercent = productData.discountPercent || 
+                ((productData.mrp - productData.discountedPrice) / productData.mrp * 100).toFixed(2);
+            
+            const cardHTML = `
+                <div class="product-card">
+                    <div class="product-image" style="background-image: url('${productData.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}')"></div>
+                    <div class="product-info">
+                        <div class="product-name">${productData.name}</div>
+                        <div class="product-pricing">
+                            <div>
+                                <span class="mrp">₹${productData.mrp}</span>
+                                <span class="discounted-price">₹${productData.discountedPrice}</span>
+                            </div>
+                            <span class="discount-badge">${discountPercent}% OFF</span>
+                        </div>
+                        <div class="product-details">${productData.details}</div>
+                        <div class="valid-date">Valid until: ${formatDate(productData.validDate)}</div>
+                    </div>
+                </div>
+            `;
+            
+            customerProductsList.insertAdjacentHTML('beforeend', cardHTML);
+        }
+        
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+        
+        // Voice input functionality
+        function startVoiceInput(fieldId) {
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                
+                recognition.lang = 'en-US';
+                recognition.start();
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    const field = document.getElementById(fieldId);
+                    
+                    if (field.tagName === 'TEXTAREA') {
+                        field.value += transcript + ' ';
+                    } else {
+                        field.value = transcript;
+                    }
+                    
+                    recognition.stop();
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error', event.error);
+                    recognition.stop();
+                };
+            } else {
+                alert('Speech recognition not supported in this browser');
             }
-        });
-
-        // Add initial product form
-        window.addEventListener('DOMContentLoaded', () => {
-            addProductForm();
-        });
+        }
     </script>
 </body>
 </html>
