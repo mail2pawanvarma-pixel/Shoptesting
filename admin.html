@@ -3,900 +3,501 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shop Discount Manager</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <title>Product Display App</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --accent: #e74c3c;
-            --light: #ecf0f1;
-            --dark: #34495e;
-            --success: #2ecc71;
-            --warning: #f39c12;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
+        /* Global Styles */
         body {
-            background-color: #f5f7fa;
-            color: var(--dark);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
             padding: 20px;
+            background-color: #f4f4f9;
         }
-        
-        .page {
-            display: none;
-            min-height: 100vh;
-        }
-        
-        .active-page {
-            display: block;
-        }
-        
-        /* Header Styles */
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .nav-buttons button {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: background 0.3s;
-        }
-        
-        .nav-buttons button:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        /* Login Page Styles */
-        .login-container {
-            max-width: 400px;
-            margin: 50px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-        
-        .login-container h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: var(--primary);
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        
-        .btn {
-            background: var(--secondary);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            transition: background 0.3s;
-        }
-        
-        .btn:hover {
-            background: #2980b9;
-        }
-        
-        .btn-accent {
-            background: var(--accent);
-        }
-        
-        .btn-accent:hover {
-            background: #c0392b;
-        }
-        
-        .error-message {
-            color: var(--accent);
-            text-align: center;
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(231, 76, 60, 0.1);
-            border-radius: 4px;
-        }
-        
-        /* Dashboard Styles */
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .dashboard-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .dashboard-actions button {
-            padding: 10px 15px;
-        }
-        
-        .product-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .form-field {
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .voice-input {
-            position: relative;
-        }
-        
-        .voice-btn {
-            position: absolute;
-            right: 10px;
-            top: 35px;
-            background: none;
-            border: none;
-            color: var(--secondary);
-            cursor: pointer;
-            font-size: 18px;
-        }
-        
-        .products-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        
-        .product-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-            transition: transform 0.3s;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .product-image {
-            height: 200px;
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .product-info {
-            padding: 15px;
-        }
-        
-        .product-name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .product-pricing {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .mrp {
-            text-decoration: line-through;
-            color: #7f8c8d;
-        }
-        
-        .discounted-price {
-            color: var(--accent);
-            font-weight: bold;
-            font-size: 18px;
-        }
-        
-        .discount-badge {
-            background: var(--accent);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .product-details {
-            color: #7f8c8d;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        .valid-date {
-            font-size: 14px;
-            color: var(--warning);
-        }
-        
-        .delete-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-        }
-        
-        /* QR Code Section */
-        .qr-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            text-align: center;
-            margin-top: 30px;
-        }
-        
-        #qrcode {
-            display: inline-block;
-            margin: 20px 0;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-        }
-        
-        /* Customer View Styles */
-        .customer-header {
+        h1 {
+            color: #333;
             text-align: center;
             margin-bottom: 30px;
         }
-        
-        .shop-name {
-            color: var(--primary);
+
+        /* View Toggle Button */
+        .toggle-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .toggle-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .toggle-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Shopkeeper View Styles */
+        .shopkeeper-view {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .shopkeeper-view h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .product-form div {
+            margin-bottom: 15px;
+        }
+        .product-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .product-form input[type="text"],
+        .product-form input[type="number"],
+        .product-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .product-form textarea {
+            resize: vertical;
+        }
+        .product-form button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .product-form button:hover {
+            background-color: #1e7e34;
+        }
+
+        /* Shopkeeper Product List */
+        .shopkeeper-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .shopkeeper-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
             margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
         }
-        
-        .discounts-title {
-            color: var(--accent);
-            font-size: 24px;
+        .shopkeeper-list li img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 4px;
         }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .dashboard-header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .dashboard-actions {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .form-row {
-                flex-direction: column;
-            }
-            
-            .products-list {
-                grid-template-columns: 1fr;
-            }
+        .shopkeeper-list .product-info {
+            flex-grow: 1;
+        }
+        .shopkeeper-list .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .shopkeeper-list .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* Customer View Styles (Product Grid) */
+        .customer-view {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        .product-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        .product-details {
+            padding: 15px;
+        }
+        .product-details h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .price-info {
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+        .mrp {
+            color: #888;
+            text-decoration: line-through;
+            margin-right: 10px;
+        }
+        .discounted-price {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .discount-badge {
+            display: inline-block;
+            background-color: #ffc107;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .other-details {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Utility Class for Hiding */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- Login Page -->
-    <div id="login-page" class="page active-page">
-        <div class="container">
-            <div class="login-container">
-                <h2>Shopkeeper Login</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="btn">Login</button>
-                    <div id="login-error" class="error-message" style="display: none;"></div>
-                </form>
-                <p style="text-align: center; margin-top: 15px;">
-                    Don't have an account? <a href="#" id="show-signup">Sign up</a>
-                </p>
-            </div>
-            
-            <div class="login-container" id="signup-container" style="display: none;">
-                <h2>Create Account</h2>
-                <form id="signup-form">
-                    <div class="form-group">
-                        <label for="signup-email">Email</label>
-                        <input type="email" id="signup-email" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="signup-password">Password</label>
-                        <input type="password" id="signup-password" placeholder="Create a password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="shop-name">Shop Name</label>
-                        <input type="text" id="shop-name" placeholder="Enter your shop name" required>
-                    </div>
-                    <button type="submit" class="btn">Sign Up</button>
-                    <div id="signup-error" class="error-message" style="display: none;"></div>
-                </form>
-                <p style="text-align: center; margin-top: 15px;">
-                    Already have an account? <a href="#" id="show-login">Login</a>
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Dashboard Page -->
-    <div id="dashboard-page" class="page">
-        <header>
-            <div class="container header-content">
-                <div class="logo">Shop Discount Manager</div>
-                <div class="nav-buttons">
-                    <button id="logout-btn">Logout</button>
-                </div>
-            </div>
-        </header>
-        
-        <div class="container">
-            <div class="dashboard-header">
-                <h1>Manage Discounted Products</h1>
-                <div class="dashboard-actions">
-                    <button id="add-product-btn" class="btn">Add Another Product</button>
-                    <button id="generate-qr-btn" class="btn">Generate QR Code</button>
-                    <button id="update-products-btn" class="btn btn-accent">Update Products</button>
-                </div>
-            </div>
-            
-            <div id="product-forms">
-                <!-- Product forms will be added here dynamically -->
-            </div>
-            
-            <div id="qr-section" class="qr-section" style="display: none;">
-                <h2>Your Shop's QR Code</h2>
-                <p>Customers can scan this code to view your current discounts</p>
-                <div id="qrcode"></div>
-                <p><strong>Shop URL:</strong> <span id="shop-url"></span></p>
-            </div>
-            
-            <div class="products-list" id="products-list">
-                <!-- Product cards will be displayed here -->
-            </div>
-        </div>
-    </div>
-    
-    <!-- Customer View Page -->
-    <div id="customer-page" class="page">
-        <header>
-            <div class="container header-content">
-                <div class="logo" id="customer-shop-name">Shop Discounts</div>
-            </div>
-        </header>
-        
-        <div class="container">
-            <div class="customer-header">
-                <h1 class="shop-name" id="display-shop-name">Shop Name</h1>
-                <h2 class="discounts-title">Current Discounts</h2>
-            </div>
-            
-            <div class="products-list" id="customer-products-list">
-                <!-- Discounted products will be displayed here -->
-            </div>
-        </div>
+
+    <div class="toggle-container">
+        <button id="toggleViewBtn" class="toggle-btn"></button>
     </div>
 
-    <!-- Firebase Configuration -->
+    <div id="shopkeeperView" class="shopkeeper-view hidden">
+        <h1>Shopkeeper Product Management</h1>
+        <p>Current products: <span id="productCount">0</span>/20</p>
+        
+        <h2>Add New Product</h2>
+        <form id="productForm" class="product-form">
+            <div>
+                <label for="productName">Product Name:</label>
+                <input type="text" id="productName" required>
+            </div>
+            <div>
+                <label for="productImage">Image URL (e.g., https://example.com/image.jpg):</label>
+                <input type="text" id="productImage" value="https://via.placeholder.com/150" required>
+            </div>
+            <div>
+                <label for="mrp">MRP ($):</label>
+                <input type="number" id="mrp" min="0.01" step="0.01" required>
+            </div>
+            <div>
+                <label for="discountedPrice">Discounted Price ($):</label>
+                <input type="number" id="discountedPrice" min="0" step="0.01" required>
+            </div>
+            <div>
+                <label for="discountPercentage">Discount Percentage:</label>
+                <input type="text" id="discountPercentage" readonly placeholder="0.00%">
+            </div>
+            <div>
+                <label for="otherDetails">Other Offers / Details:</label>
+                <textarea id="otherDetails"></textarea>
+            </div>
+            <button type="submit" id="addProductBtn">Add Product</button>
+        </form>
+
+        <h2>Product List</h2>
+        <ul id="shopkeeperProductList" class="shopkeeper-list">
+            </ul>
+    </div>
+
+    <div id="customerView" class="customer-view">
+        <h1>Daily Discounted Products</h1>
+        <div id="productGrid" class="product-grid">
+            </div>
+    </div>
+
     <script>
-        // INSERT YOUR FIREBASE CONFIG HERE
-        const firebaseConfig = {
-  apiKey: "AIzaSyDvsAclffGQrwfnguMisaxUO-y_SA5QRUk",
-  authDomain: "shop-discount-d1c69.firebaseapp.com",
-  databaseURL: "https://shop-discount-d1c69-default-rtdb.firebaseio.com",
-  projectId: "shop-discount-d1c69",
-  storageBucket: "shop-discount-d1c69.firebasestorage.app",
-  messagingSenderId: "860685441277",
-  appId: "1:860685441277:web:8ba1002695cecf53cf8694"
-};
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
-    </script>
-    
-    <script>
-        // DOM Elements
-        const loginPage = document.getElementById('login-page');
-        const dashboardPage = document.getElementById('dashboard-page');
-        const customerPage = document.getElementById('customer-page');
-        
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const loginError = document.getElementById('login-error');
-        const signupError = document.getElementById('signup-error');
-        
-        const showSignupLink = document.getElementById('show-signup');
-        const showLoginLink = document.getElementById('show-login');
-        const signupContainer = document.getElementById('signup-container');
-        
-        const logoutBtn = document.getElementById('logout-btn');
-        const addProductBtn = document.getElementById('add-product-btn');
-        const generateQrBtn = document.getElementById('generate-qr-btn');
-        const updateProductsBtn = document.getElementById('update-products-btn');
-        
-        const productFormsContainer = document.getElementById('product-forms');
-        const productsList = document.getElementById('products-list');
-        const qrSection = document.getElementById('qr-section');
-        const qrcodeDiv = document.getElementById('qrcode');
-        const shopUrlSpan = document.getElementById('shop-url');
-        
-        const customerProductsList = document.getElementById('customer-products-list');
-        const customerShopName = document.getElementById('customer-shop-name');
-        const displayShopName = document.getElementById('display-shop-name');
-        
-        // Global variables
-        let currentUser = null;
-        let shopData = null;
-        let productCount = 0;
-        const maxProducts = 10;
-        
-        // Check if we're showing customer view
-        const urlParams = new URLSearchParams(window.location.search);
-        const shopId = urlParams.get('shop');
-        
-        if (shopId) {
-            showCustomerView(shopId);
-        } else {
-            // Authentication state observer
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    currentUser = user;
-                    loadShopData();
-                    showPage(dashboardPage);
-                } else {
-                    showPage(loginPage);
+        const MAX_PRODUCTS = 20;
+        const STORAGE_KEY = 'shopProducts';
+
+        // DOM elements
+        const shopkeeperView = document.getElementById('shopkeeperView');
+        const customerView = document.getElementById('customerView');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const productForm = document.getElementById('productForm');
+        const mrpInput = document.getElementById('mrp');
+        const discountedPriceInput = document.getElementById('discountedPrice');
+        const discountPercentageInput = document.getElementById('discountPercentage');
+        const shopkeeperProductList = document.getElementById('shopkeeperProductList');
+        const productGrid = document.getElementById('productGrid');
+        const productCountSpan = document.getElementById('productCount');
+
+        let products = [];
+        let isShopkeeperView = false;
+
+        // --- Core Functions ---
+
+        /**
+         * Loads products from localStorage.
+         */
+        function loadProducts() {
+            const storedProducts = localStorage.getItem(STORAGE_KEY);
+            if (storedProducts) {
+                try {
+                    products = JSON.parse(storedProducts);
+                } catch (e) {
+                    console.error("Error parsing localStorage data:", e);
+                    products = []; // Reset on error
                 }
+            } else {
+                products = [];
+            }
+        }
+
+        /**
+         * Saves the current products array to localStorage.
+         */
+        function saveProducts() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+            updateProductCount();
+        }
+
+        /**
+         * Calculates discount percentage based on MRP and discounted price.
+         * @param {number} mrp - The original MRP.
+         * @param {number} discountedPrice - The final selling price.
+         * @returns {number} The discount percentage (e.g., 25.5 for 25.5%).
+         */
+        function calculateDiscount(mrp, discountedPrice) {
+            if (mrp > 0 && discountedPrice < mrp) {
+                return ((mrp - discountedPrice) / mrp) * 100;
+            }
+            return 0;
+        }
+
+        // --- View Rendering ---
+
+        /**
+         * Renders the product list for the Shopkeeper's view.
+         */
+        function renderShopkeeperList() {
+            shopkeeperProductList.innerHTML = '';
+            products.forEach((product, index) => {
+                const li = document.createElement('li');
+                li.dataset.index = index;
+                
+                const percentage = calculateDiscount(product.mrp, product.discountedPrice).toFixed(2);
+                
+                li.innerHTML = `
+                    <img src="${product.imageURL}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/50'">
+                    <div class="product-info">
+                        <strong>${product.name}</strong><br>
+                        MRP: $${product.mrp.toFixed(2)} | Disc. Price: $${product.discountedPrice.toFixed(2)} | **${percentage}% OFF**
+                    </div>
+                    <button class="delete-btn" data-index="${index}">Delete</button>
+                `;
+                shopkeeperProductList.appendChild(li);
             });
         }
-        
-        // Event Listeners
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Login successful
-                    loginError.style.display = 'none';
-                })
-                .catch((error) => {
-                    loginError.textContent = error.message;
-                    loginError.style.display = 'block';
-                });
-        });
-        
-        signupForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const shopName = document.getElementById('shop-name').value;
-            
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Create shop data in database
-                    const user = userCredential.user;
-                    return database.ref('shops/' + user.uid).set({
-                        name: shopName,
-                        email: email,
-                        createdAt: firebase.database.ServerValue.TIMESTAMP
-                    });
-                })
-                .then(() => {
-                    // Signup successful
-                    signupError.style.display = 'none';
-                })
-                .catch((error) => {
-                    signupError.textContent = error.message;
-                    signupError.style.display = 'block';
-                });
-        });
-        
-        showSignupLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelector('.login-container').style.display = 'none';
-            signupContainer.style.display = 'block';
-        });
-        
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            signupContainer.style.display = 'none';
-            document.querySelector('.login-container').style.display = 'block';
-        });
-        
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut();
-        });
-        
-        addProductBtn.addEventListener('click', addProductForm);
-        generateQrBtn.addEventListener('click', generateQRCode);
-        updateProductsBtn.addEventListener('click', updateProducts);
-        
-        // Functions
-        function showPage(page) {
-            loginPage.classList.remove('active-page');
-            dashboardPage.classList.remove('active-page');
-            customerPage.classList.remove('active-page');
-            page.classList.add('active-page');
-        }
-        
-        function loadShopData() {
-            database.ref('shops/' + currentUser.uid).once('value')
-                .then((snapshot) => {
-                    shopData = snapshot.val();
-                    loadProducts();
-                });
-        }
-        
-        function loadProducts() {
-            database.ref('products/' + currentUser.uid).once('value')
-                .then((snapshot) => {
-                    const products = snapshot.val();
-                    productsList.innerHTML = '';
-                    productFormsContainer.innerHTML = '';
-                    productCount = 0;
-                    
-                    if (products) {
-                        Object.keys(products).forEach(key => {
-                            addProductForm(products[key]);
-                            displayProductCard(products[key], key);
-                        });
-                    } else {
-                        addProductForm();
-                    }
-                });
-        }
-        
-        function addProductForm(productData = null) {
-            if (productCount >= maxProducts) {
-                alert(`Maximum ${maxProducts} products allowed`);
+
+        /**
+         * Renders the product grid for the Customer's view.
+         */
+        function renderCustomerGrid() {
+            productGrid.innerHTML = '';
+            if (products.length === 0) {
+                productGrid.innerHTML = '<p style="text-align: center; grid-column: 1 / -1;">No discounted products available today. Check back tomorrow!</p>';
                 return;
             }
-            
-            productCount++;
-            const formId = 'product-form-' + productCount;
-            
-            const formHTML = `
-                <div class="product-form" id="${formId}">
-                    <h3>Product ${productCount}</h3>
-                    <div class="form-row">
-                        <div class="form-field voice-input">
-                            <label for="product-name-${productCount}">Product Name</label>
-                            <input type="text" id="product-name-${productCount}" placeholder="Enter product name" 
-                                value="${productData ? productData.name : ''}" required>
-                            <button type="button" class="voice-btn" onclick="startVoiceInput('product-name-${productCount}')">🎤</button>
-                        </div>
-                        <div class="form-field">
-                            <label for="product-image-${productCount}">Image URL</label>
-                            <input type="url" id="product-image-${productCount}" placeholder="Enter image URL" 
-                                value="${productData ? productData.imageUrl : ''}">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-field">
-                            <label for="product-mrp-${productCount}">MRP (₹)</label>
-                            <input type="number" id="product-mrp-${productCount}" placeholder="Enter MRP" 
-                                value="${productData ? productData.mrp : ''}" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-field">
-                            <label for="product-discounted-price-${productCount}">Discounted Price (₹)</label>
-                            <input type="number" id="product-discounted-price-${productCount}" placeholder="Enter discounted price" 
-                                value="${productData ? productData.discountedPrice : ''}" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-field">
-                            <label for="product-discount-percent-${productCount}">Discount Percentage</label>
-                            <input type="number" id="product-discount-percent-${productCount}" placeholder="Auto-calculated" 
-                                value="${productData ? productData.discountPercent : ''}" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-field voice-input" style="flex: 2;">
-                            <label for="product-details-${productCount}">Product Details</label>
-                            <textarea id="product-details-${productCount}" placeholder="Enter product details" rows="3">${productData ? productData.details : ''}</textarea>
-                            <button type="button" class="voice-btn" onclick="startVoiceInput('product-details-${productCount}')" style="top: 35px;">🎤</button>
-                        </div>
-                        <div class="form-field">
-                            <label for="product-valid-date-${productCount}">Offer Valid Until</label>
-                            <input type="date" id="product-valid-date-${productCount}" 
-                                value="${productData ? productData.validDate : ''}" required>
-                        </div>
-                    </div>
-                    <button type="button" class="delete-btn" onclick="deleteProductForm('${formId}', ${productData ? `'${Object.keys(productsList.children).find(key => productsList.children[key].dataset.id === productData.id)}'` : 'null'})">Delete Product</button>
-                </div>
-            `;
-            
-            productFormsContainer.insertAdjacentHTML('beforeend', formHTML);
-            
-            // Add event listeners for price calculation
-            const mrpInput = document.getElementById(`product-mrp-${productCount}`);
-            const discountedPriceInput = document.getElementById(`product-discounted-price-${productCount}`);
-            const discountPercentInput = document.getElementById(`product-discount-percent-${productCount}`);
-            
-            if (mrpInput && discountedPriceInput) {
-                mrpInput.addEventListener('input', calculateDiscount);
-                discountedPriceInput.addEventListener('input', calculateDiscount);
-            }
-            
-            function calculateDiscount() {
-                const mrp = parseFloat(mrpInput.value) || 0;
-                const discountedPrice = parseFloat(discountedPriceInput.value) || 0;
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.classList.add('product-card');
+
+                const percentage = calculateDiscount(product.mrp, product.discountedPrice).toFixed(0); // Round down for badge
                 
-                if (mrp > 0 && discountedPrice > 0 && discountedPrice <= mrp) {
-                    const discountPercent = ((mrp - discountedPrice) / mrp * 100).toFixed(2);
-                    discountPercentInput.value = discountPercent;
-                } else {
-                    discountPercentInput.value = '';
-                }
-            }
-        }
-        
-        function displayProductCard(productData, productId) {
-            const discountPercent = productData.discountPercent || 
-                ((productData.mrp - productData.discountedPrice) / productData.mrp * 100).toFixed(2);
-            
-            const cardHTML = `
-                <div class="product-card" data-id="${productId}">
-                    <div class="product-image" style="background-image: url('${productData.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}')"></div>
-                    <div class="product-info">
-                        <div class="product-name">${productData.name}</div>
-                        <div class="product-pricing">
-                            <div>
-                                <span class="mrp">₹${productData.mrp}</span>
-                                <span class="discounted-price">₹${productData.discountedPrice}</span>
-                            </div>
-                            <span class="discount-badge">${discountPercent}% OFF</span>
+                card.innerHTML = `
+                    <img src="${product.imageURL}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200'">
+                    <div class="product-details">
+                        <h3>${product.name}</h3>
+                        <div class="price-info">
+                            <span class="mrp">$${product.mrp.toFixed(2)}</span>
+                            <span class="discounted-price">$${product.discountedPrice.toFixed(2)}</span>
+                            <span class="discount-badge">${percentage}% OFF</span>
                         </div>
-                        <div class="product-details">${productData.details}</div>
-                        <div class="valid-date">Valid until: ${formatDate(productData.validDate)}</div>
+                        <p class="other-details">${product.otherDetails || 'No additional offers.'}</p>
                     </div>
-                </div>
-            `;
-            
-            productsList.insertAdjacentHTML('beforeend', cardHTML);
-        }
-        
-        function deleteProductForm(formId, productCardId) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                const form = document.getElementById(formId);
-                if (form) form.remove();
-                
-                if (productCardId) {
-                    const card = document.querySelector(`[data-id="${productCardId}"]`);
-                    if (card) card.remove();
-                    
-                    // Remove from database
-                    database.ref('products/' + currentUser.uid + '/' + productCardId).remove();
-                }
-                
-                productCount--;
-            }
-        }
-        
-        function updateProducts() {
-            const productForms = document.querySelectorAll('.product-form');
-            const products = {};
-            
-            productForms.forEach((form, index) => {
-                const formIndex = index + 1;
-                const name = document.getElementById(`product-name-${formIndex}`).value;
-                const imageUrl = document.getElementById(`product-image-${formIndex}`).value;
-                const mrp = parseFloat(document.getElementById(`product-mrp-${formIndex}`).value);
-                const discountedPrice = parseFloat(document.getElementById(`product-discounted-price-${formIndex}`).value);
-                const discountPercent = document.getElementById(`product-discount-percent-${formIndex}`).value;
-                const details = document.getElementById(`product-details-${formIndex}`).value;
-                const validDate = document.getElementById(`product-valid-date-${formIndex}`).value;
-                
-                if (name && mrp && discountedPrice && validDate) {
-                    const productId = 'product' + Date.now() + index;
-                    products[productId] = {
-                        name,
-                        imageUrl,
-                        mrp,
-                        discountedPrice,
-                        discountPercent,
-                        details,
-                        validDate
-                    };
-                }
+                `;
+                productGrid.appendChild(card);
             });
-            
-            // Save to database
-            database.ref('products/' + currentUser.uid).set(products)
-                .then(() => {
-                    alert('Products updated successfully!');
-                    loadProducts(); // Reload to get the correct IDs
-                })
-                .catch((error) => {
-                    alert('Error updating products: ' + error.message);
-                });
         }
-        
-        function generateQRCode() {
-            const shopUrl = window.location.origin + window.location.pathname + '?shop=' + currentUser.uid;
-            shopUrlSpan.textContent = shopUrl;
-            
-            // Clear previous QR code
-            qrcodeDiv.innerHTML = '';
-            
-            // Generate new QR code
-            QRCode.toCanvas(qrcodeDiv, shopUrl, { width: 200 }, (error) => {
-                if (error) console.error(error);
-            });
-            
-            qrSection.style.display = 'block';
+
+        /**
+         * Updates the display for the total number of products.
+         */
+        function updateProductCount() {
+            productCountSpan.textContent = products.length;
         }
-        
-        function showCustomerView(shopId) {
-            // Load shop data
-            database.ref('shops/' + shopId).once('value')
-                .then((snapshot) => {
-                    const shop = snapshot.val();
-                    if (shop) {
-                        customerShopName.textContent = shop.name + ' Discounts';
-                        displayShopName.textContent = shop.name;
-                        
-                        // Load products
-                        return database.ref('products/' + shopId).once('value');
-                    } else {
-                        throw new Error('Shop not found');
-                    }
-                })
-                .then((snapshot) => {
-                    const products = snapshot.val();
-                    customerProductsList.innerHTML = '';
-                    
-                    if (products) {
-                        Object.values(products).forEach(product => {
-                            displayCustomerProduct(product);
-                        });
-                    } else {
-                        customerProductsList.innerHTML = '<p style="text-align: center; padding: 20px;">No current discounts available.</p>';
-                    }
-                    
-                    showPage(customerPage);
-                })
-                .catch((error) => {
-                    customerProductsList.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading shop data.</p>';
-                    showPage(customerPage);
-                });
-        }
-        
-        function displayCustomerProduct(productData) {
-            const discountPercent = productData.discountPercent || 
-                ((productData.mrp - productData.discountedPrice) / productData.mrp * 100).toFixed(2);
-            
-            const cardHTML = `
-                <div class="product-card">
-                    <div class="product-image" style="background-image: url('${productData.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}')"></div>
-                    <div class="product-info">
-                        <div class="product-name">${productData.name}</div>
-                        <div class="product-pricing">
-                            <div>
-                                <span class="mrp">₹${productData.mrp}</span>
-                                <span class="discounted-price">₹${productData.discountedPrice}</span>
-                            </div>
-                            <span class="discount-badge">${discountPercent}% OFF</span>
-                        </div>
-                        <div class="product-details">${productData.details}</div>
-                        <div class="valid-date">Valid until: ${formatDate(productData.validDate)}</div>
-                    </div>
-                </div>
-            `;
-            
-            customerProductsList.insertAdjacentHTML('beforeend', cardHTML);
-        }
-        
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString(undefined, options);
-        }
-        
-        // Voice input functionality
-        function startVoiceInput(fieldId) {
-            if ('webkitSpeechRecognition' in window) {
-                const recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                
-                recognition.lang = 'en-US';
-                recognition.start();
-                
-                recognition.onresult = function(event) {
-                    const transcript = event.results[0][0].transcript;
-                    const field = document.getElementById(fieldId);
-                    
-                    if (field.tagName === 'TEXTAREA') {
-                        field.value += transcript + ' ';
-                    } else {
-                        field.value = transcript;
-                    }
-                    
-                    recognition.stop();
-                };
-                
-                recognition.onerror = function(event) {
-                    console.error('Speech recognition error', event.error);
-                    recognition.stop();
-                };
+
+        // --- Event Handlers ---
+
+        /**
+         * Toggles between the shopkeeper and customer views.
+         */
+        function toggleView() {
+            isShopkeeperView = !isShopkeeperView;
+            if (isShopkeeperView) {
+                shopkeeperView.classList.remove('hidden');
+                customerView.classList.add('hidden');
+                toggleViewBtn.textContent = 'Switch to Customer View';
+                renderShopkeeperList();
             } else {
-                alert('Speech recognition not supported in this browser');
+                shopkeeperView.classList.add('hidden');
+                customerView.classList.remove('hidden');
+                toggleViewBtn.textContent = 'Switch to Shopkeeper View';
+                renderCustomerGrid();
             }
         }
+
+        /**
+         * Handles the form submission to add a new product.
+         * @param {Event} e - The form submission event.
+         */
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            if (products.length >= MAX_PRODUCTS) {
+                alert(`Cannot add more than ${MAX_PRODUCTS} products.`);
+                return;
+            }
+
+            const mrp = parseFloat(mrpInput.value);
+            const discountedPrice = parseFloat(discountedPriceInput.value);
+
+            if (discountedPrice > mrp) {
+                alert("Discounted Price cannot be higher than MRP.");
+                return;
+            }
+
+            const newProduct = {
+                id: Date.now(), // Simple unique ID
+                name: document.getElementById('productName').value.trim(),
+                imageURL: document.getElementById('productImage').value.trim() || 'https://via.placeholder.com/150',
+                mrp: mrp,
+                discountedPrice: discountedPrice,
+                otherDetails: document.getElementById('otherDetails').value.trim()
+            };
+
+            products.unshift(newProduct); // Add to the start
+            saveProducts();
+            renderShopkeeperList();
+            productForm.reset();
+            discountPercentageInput.value = '0.00%'; // Clear percentage field
+            
+            // Re-run discount calculation setup to clear the form fields
+            setupDiscountCalculation(); 
+        }
+
+        /**
+         * Deletes a product by index from the shopkeeper list.
+         * @param {number} index - The index of the product to delete.
+         */
+        function deleteProduct(index) {
+            products.splice(index, 1);
+            saveProducts();
+            renderShopkeeperList();
+        }
+        
+        /**
+         * Event listener for the delete button in the shopkeeper list.
+         */
+        shopkeeperProductList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const index = parseInt(e.target.dataset.index);
+                if (!isNaN(index)) {
+                    deleteProduct(index);
+                }
+            }
+        });
+
+        /**
+         * Sets up the real-time discount percentage calculation.
+         */
+        function setupDiscountCalculation() {
+            const inputs = [mrpInput, discountedPriceInput];
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    const mrp = parseFloat(mrpInput.value);
+                    const discountedPrice = parseFloat(discountedPriceInput.value);
+                    
+                    if (isNaN(mrp) || isNaN(discountedPrice) || mrp <= 0) {
+                        discountPercentageInput.value = '0.00%';
+                        return;
+                    }
+                    
+                    if (discountedPrice > mrp) {
+                        // Optional: Visually indicate an error
+                        discountPercentageInput.value = 'ERROR';
+                        return;
+                    }
+
+                    const percentage = calculateDiscount(mrp, discountedPrice).toFixed(2);
+                    discountPercentageInput.value = `${percentage}%`;
+                });
+            });
+        }
+
+        // --- Initialization ---
+
+        /**
+         * Initializes the application on page load.
+         */
+        function init() {
+            loadProducts();
+            updateProductCount();
+            setupDiscountCalculation();
+            
+            // Set up event listeners
+            toggleViewBtn.addEventListener('click', toggleView);
+            productForm.addEventListener('submit', handleFormSubmit);
+
+            // Default state: Customer View
+            isShopkeeperView = true; // Set to opposite, so toggleView sets it correctly
+            toggleView();
+        }
+
+        // Run initialization
+        init();
+
     </script>
 </body>
 </html>
